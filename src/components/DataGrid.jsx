@@ -1,13 +1,16 @@
 import  { useState, useEffect } from 'react';
 import { DataGrid } from '@mui/x-data-grid';
-import { Button } from '@mui/material';
+import { Button, Snackbar } from '@mui/material';
 import { SERVER_URL } from './Constants';
+import AddCar from './AddCar';
+import UpdateCar from './UpdateCar';
 
 
 
   
 const DataGridComponent = () => {
     const [cars, setCars] = useState([]);
+    const [open, setOpen] = useState(false)
     useEffect(()=>{
         
         
@@ -16,18 +19,19 @@ const DataGridComponent = () => {
     },[])
         //delete functionality
         const deleteCar = async (url)=>{
+            if(window.confirm("Are you sure you want to remove this car❓")){
             try {
                 const response = await fetch(url,{method: 'DELETE'})
                 if(!response.ok){
                     throw new Error("Network Response is not ok")
                 }
-                fetchData()
-                
+               await  fetchData()
+                setOpen(true)             
             } catch (error) {
                 console.error(error)
                 
             }
-        }
+        }}
 
 
     async function fetchData(){
@@ -59,41 +63,92 @@ const DataGridComponent = () => {
 
     const columns = [
         //   { field: 'id', headerName: 'ID', width: 190 },
-          { field: 'make', headerName: 'Make', width: 190 },
-          { field: 'model', headerName: 'Model', width: 190 },
-          { field: 'color', headerName: 'Color', width: 190 },
-          { field: 'registration', headerName: 'Registration', width: 190 },
-          { field: 'year', headerName: 'Year', width: 190},
-          { field: 'price', headerName: 'Price', width: 190 },
+          { field: 'make', headerName: 'Make', width: 200 },
+          { field: 'model', headerName: 'Model', width: 200 },
+          { field: 'color', headerName: 'Color', width: 200 },
+          { field: 'registration', headerName: 'Registration', width: 200 },
+          { field: 'year', headerName: 'Year', width: 200},
+          { field: 'price', headerName: 'Price', width: 200 },
           {
             field: "update",
             headerName: "Update",
             sortable: false,
-            renderCell: ({ row }) =>
-              <Button onClick={() => updateCar(row)} color="primary" style={{ fontWeight: 'bold' }}>
-                Update
-              </Button>,
+            filterable: false,
+            renderCell: ( params ) =>(
+           <UpdateCar  data={params.row} updateCar={updateCar} />
+            )
           },
           {
             field: "delete",
             headerName: "Delete",
             sortable: false,
             renderCell: (params) =>
-              <Button onClick={()=>deleteCar(SERVER_URL+"cars/"+params.row.id)} color="warning" style={{ fontWeight: 'bold' }}>
-                Delete
-              </Button>
+              <Button onClick={()=>deleteCar(SERVER_URL+"cars/"+params.row.id)} style={{ fontWeight: 'bold', color: 'red' }}>Delete</Button>
           }
         ];
+
+        const addCar = async(car)=>{
+            try {
+
+                const response = await fetch(SERVER_URL+'cars', {method: 'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(car)})
+                if(!response.ok){
+                    throw new Error("new car was not added")
+                }
+                await fetchData()
+
+                
+            } catch (error) {
+
+                console.error(error)
+                
+            }
+        }
+
+        const updateCar = async(car, url)=>{
+            try {
+
+                const response = await fetch(url, {method: 'PUT',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(car)})
+                if(!response.ok){
+                    throw new Error("car was not updated")
+                }
+                await fetchData()
+
+                
+            } catch (error) {
+
+                console.error(error)
+                
+            }
+        }
+        
         
   
     return (
       <div className='data-grid' style={{ height: 400, width: '100%' }}>
+        <AddCar  addCar={addCar}/>
+        
         <DataGrid
           rows={cars}
           columns={columns}
           getRowId={row=>row.id}
           style={{ fontWeight: 'bold' }}
+          disableRowSelectionOnClick={true}
         />
+
+        <Snackbar open={open} autoHideDuration={2000} onClose={()=>
+        setOpen(false) 
+        }   message="Car Removed" sx={{
+            width: 400,
+            color: "secondary",
+            //backgroundColor: "green", This doesn't work
+            "& .MuiSnackbarContent-root": { backgroundColor: "red" }
+          }}/>
+
+        
       </div>
     );
   };
